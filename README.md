@@ -20,13 +20,15 @@
 
 ## 預約發放優惠卷 
 
+每日由後台排程新增 `active_YYYYMMDD` 的 key 進入 redis. 執行 `SET active_20240424 0` .
+
 開放時間為每日 22:55 - 22:59 , 給用戶進行預約活動的登記; 其他時間一率回應 `403` Forbidden.
 
 設計一個bloom filter, 將user id 放入, 不存在bloom filter的用戶才能預約 (反之, 已預約的不會不存在)
 換個思路 用redis bitmaps, 將user id 對應的bit設置為1. 這樣有沒有預約過就會知道. key採用今天日期.  user id太長超過2^32次方在來煩惱.
 
-再來使用取號機, 每個預約成功請求給個 預約號碼牌; 因為優惠卷數量是預約人數的 20%, 所以每取號5張(或每次取號牌尾數是0) 就即時產生一組優惠卷號碼於db.
-
+再來使用取號機, 每個預約成功請求給個 `預約號碼牌`數量 ; 因為優惠卷數量是預約人數的 20%, 所以每取號5張(或每次取號牌尾數是0) 就即時產生一組優惠卷號碼於db.
+`INCR active_YYYYMMDD`
 
 
 ## 搶購優惠卷
@@ -45,6 +47,12 @@
 
 ## HTTP Status
 
+403 Forbidden
+
 
 ## Busniess Error Codes
+
+NOT_IN_ACTIVE_TIME
+
+ERROR_DUPLICATED_RESERVATION 
 
