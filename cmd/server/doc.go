@@ -1,0 +1,4 @@
+/*
+Coupon server
+*/
+package main
