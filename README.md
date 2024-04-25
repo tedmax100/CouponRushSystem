@@ -100,6 +100,7 @@ end
 送個event 到mq, 慢慢同步至postgres,
 event record, coupon id + user id + event time + event type 'received_coupon`
 
+再有一些consumer, prefetch能多點, 來同步這些event 到資料庫並更新優惠卷狀態
 
 ## HTTP Status
 
@@ -116,3 +117,18 @@ NOT_RESERVATION
 
 
 ## Data Schema
+
+
+# Project Layout
+
+## /cmd
+
+執行 Server 或 Preload 的進入點
+
+## /doc
+
+存放 openapi doc 
+
+## /config
+
+存放啟動該
