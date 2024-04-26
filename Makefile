@@ -17,3 +17,16 @@ docker-build:
 	--build-arg "GO_VERSION=$(GO_VERSION)" \
 	--build-arg "GIT_BRANCH=$(GIT_BRANCH)" \
 	-t coupon_rush_server -f cmd/server/Dockerfile --no-cache . ;
+
+
+
+.PHONY: go-test
+go-test:
+	.PHONY: go-test
+go-test:
+	go test ./... -coverprofile=coverage.out
+	( \
+		go tool cover -func=coverage.out & \
+		go tool cover -html=coverage.out & \
+		wait \
+	)
