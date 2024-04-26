@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/tedmax100/CouponRushSystem/internal/config"
 	"github.com/tedmax100/CouponRushSystem/internal/log"
@@ -25,13 +26,18 @@ func NewRedis(p RedisParams) *redis.Client {
 	}
 	option.PoolSize = 5
 	client := redis.NewClient(&redis.Options{
-		Addr: option.Addr,
-		//Username:  option.Username,
-		//Password:  option.Password,
+		Addr:     option.Addr,
 		PoolSize: option.PoolSize,
 		Protocol: option.Protocol,
-		//TLSConfig: option.TLSConfig,
 	})
+
+	if err := redisotel.InstrumentTracing(client); err != nil {
+		log.Fatal(context.Background(), err)
+	}
+	if err := redisotel.InstrumentMetrics(client); err != nil {
+		log.Fatal(context.Background(), err)
+	}
+
 	if err := client.Ping(p.Ctx).Err(); err != nil {
 		log.Fatal(context.Background(), err)
 	}
