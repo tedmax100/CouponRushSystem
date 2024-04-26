@@ -1,5 +1,6 @@
 package message_queue
 
+/*
 import (
 	"context"
 	"fmt"
@@ -260,7 +261,7 @@ func RunBroker(broker *Broker, lc fx.Lifecycle) {
 					log.Fatal(broker.ctx, err)
 					return err
 				}
-				return nil
+		 		return nil
 			},
 			OnStop: func(ctx context.Context) error {
 				err := broker.Close()
@@ -273,3 +274,4 @@ func RunBroker(broker *Broker, lc fx.Lifecycle) {
 		},
 	)
 }
+*/
