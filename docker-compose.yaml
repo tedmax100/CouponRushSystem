@@ -1,0 +1,22 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15.6
+    container_name: db
+    restart: always
+    volumes:
+      - ./build/db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
+    environment:
+       POSTGRES_PASSWORD: qwer1234
+       POSTGRES_USER: userabc
+       POSTGRES_DB: coupon
+       SCHEMA: public
+
+  redis:
+    image: redis:7.2
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379

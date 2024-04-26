@@ -50,7 +50,7 @@
 ```
 tx.Begin()
 
-UPDATE coupon SET buyer=$user_id , status=reserved WHERE status=unused LIMIT 1 returning id;
+UPDATE coupon SET buyer=$user_id , status=reserved WHERE status=unreserved LIMIT 1 returning id;
 
 if id > 0 {
     // insert a record to reserved_coupon  table with user id and coupon id
@@ -116,7 +116,35 @@ ERROR_DUPLICATED_RESERVATION
 NOT_RESERVATION
 
 
-## Data Schema
+## DB Data Schema
+User : {
+    user_id : uint64
+    user_name : string 
+}
+
+Active : {
+    id : uint64
+    date: epoch time stamp
+    state : bool // not ready or opening or closed
+}
+
+UserResvedHistory : {
+    user_id : uint64 // user id 
+    active_id : uint64 // active id
+    serial_num : uint64 
+    reserved_at : epoch time stamp
+} 
+
+Coupon : {
+    id : uint64
+    active_id : uint64
+    coupon_code : string
+    state : enum // created or reserved or used
+    buyer : uint64 // user_id 
+    buy_time : epoch time stamp
+    created_at : epoch time stamp
+}
+
 
 
 # Project Layout

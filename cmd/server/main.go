@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tedmax100/CouponRushSystem/pkg/log"
+	"github.com/tedmax100/CouponRushSystem/internal/config"
+	"github.com/tedmax100/CouponRushSystem/internal/database"
+	"github.com/tedmax100/CouponRushSystem/internal/log"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -34,6 +36,8 @@ func main() {
 		fx.Provide(func() context.CancelFunc {
 			return cancel
 		}),
+		config.Module,
+		database.Module,
 		fx.Invoke(func(cancelFunc context.CancelFunc, lc fx.Lifecycle) {
 			lc.Append(
 				fx.Hook{
@@ -54,5 +58,4 @@ func main() {
 
 func init() {
 	log.Initital(GitCommit, GitBranch, GoVersion, BuildDate)
-
 }
