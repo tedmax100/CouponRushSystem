@@ -12,6 +12,8 @@ import (
 type Config struct {
 	DB    string `mapstructure:"DATABASE_URL"`
 	Redis string `mapstructure:"REDIS_URL"`
+	Port  string `mapstructure:"PORT"`
+	MQ    string `mapstructure:"MQ_URL"`
 }
 
 // GetConfig TODO May need to be private
@@ -33,6 +35,8 @@ func GetConfig() *Config {
 	var envList = [][]string{
 		{"REDIS_URL"},
 		{"DATABASE_URL"},
+		{"PORT"},
+		{"MQ_URL"},
 	}
 	for _, envOptions := range envList {
 		err := v.BindEnv(envOptions...)

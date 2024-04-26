@@ -3,8 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
+	"github.com/gin-gonic/gin"
 	"github.com/tedmax100/CouponRushSystem/internal/config"
 	"github.com/tedmax100/CouponRushSystem/internal/database"
 	"github.com/tedmax100/CouponRushSystem/internal/log"
@@ -49,11 +53,36 @@ func main() {
 				},
 			)
 		}),
+		fx.Invoke(runServer),
 		fx.Logger(&log.FxLogger{}),
 		fx.StopTimeout(time.Minute),
 	)
 
 	app.Run()
+}
+
+func runServer(configObj *config.Config, lc fx.Lifecycle) {
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.ContextWithFallback = true
+	r.Use(otelgin.Middleware("coupun_rush_server"))
+	//api.SetupRouter(r, GitCommit, baseRepo, mainRepo, settingRepo, jobRepo, contract, bondContract,
+
+	server := &http.Server{
+		Addr:    ":" + configObj.Port,
+		Handler: r,
+	}
+
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			go server.ListenAndServe()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			return server.Shutdown(ctx)
+		},
+	})
 }
 
 func init() {

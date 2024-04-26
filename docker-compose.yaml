@@ -20,3 +20,15 @@ services:
     restart: always
     ports:
       - 6379:6379
+
+  message_queue:
+    image: rabbitmq:3.13-management
+    container_name: message_queue
+    environment:
+      - RABBITMQ_DEFAULT_VHOST=/
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=qwer1234
+      - RABBITMQ_ERLANG_COOKIE=tonfura
+    ports:
+      - "5672:5672"
+      - "15672:15672"
