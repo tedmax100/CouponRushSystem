@@ -145,7 +145,41 @@ Coupon : {
     created_at : epoch time stamp
 }
 
+```mermaid
+erDiagram
 
+    USER ||--o{ USER-RESERVED-COUPON-ACTIVE-HISTORY : "has"
+    USER {
+        bigint user_id PK "User ID"
+        varchar user_name "User Name"
+    }
+
+    COUPON-ACTIVE ||--o{ USER-RESERVED-COUPON-ACTIVE-HISTORY : "contains"
+    COUPON-ACTIVE ||--o{ COUPON : "includes"
+    COUPON-ACTIVE {
+        bigint id PK "Active ID"
+        bigint date "Event Date"
+        coupon_active_state state "Active State"
+    }
+
+    USER-RESERVED-COUPON-ACTIVE-HISTORY {
+        bigint user_id FK "User ID"
+        bigint active_id FK "Active ID"
+        bigint serial_num "Serial Number"
+        bigint reserved_at "Reserved At"
+    }
+
+    COUPON {
+        bigint id PK "Coupon ID"
+        bigint active_id FK "Active ID"
+        varchar coupon_code "Coupon Code"
+        coupon_state state "Coupon State"
+        bigint buyer FK "Buyer User ID"
+        bigint buy_time "Buy Time"
+        bigint created_at "Created At"
+    }
+
+```
 
 # Project Layout
 
