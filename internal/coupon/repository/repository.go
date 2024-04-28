@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
@@ -42,14 +43,50 @@ func (r *CouponActiveRepository) GetActive(ctx context.Context, activeId uint64)
 	return couponActive, nil
 }
 
-func (r *CouponActiveRepository) ReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) error {
+func (r *CouponActiveRepository) ReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) (uint64, error) {
 	dateKey := couponActive.ActiveDate.Format("coupan_active_20060102")
+	reserveAtiveAmounKey := couponActive.ActiveDate.Format("reserve_active_amount_20060102")
 
-	err := r.redisClient.SetBit(ctx, dateKey, int64(userId), 1).Err()
+	script := `
+		local dateKey = KEYS[1]
+		local reserveAtiveAmounKey = KEYS[2]
+		local userId = ARGV[1]
+
+		redis.call('SETBIT', dateKey, userId, 1)
+		local reservedSeq = redis.call('INCR', reserveAtiveAmounKey)
+
+		return reservedSeq
+	`
+
+	result, err := r.redisClient.Eval(ctx, script, []string{dateKey, reserveAtiveAmounKey}, userId).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	resevedSeq, ok := result.(uint64)
+	if !ok {
+		return 0, fmt.Errorf("unexpected result type: %T, value: %v", result, result)
+	}
+
+	return resevedSeq, nil
+}
+
+func (r *CouponActiveRepository) AddCoupon(ctx context.Context, coupon model.Coupon) error {
+	couponJSON, err := coupon.Marshal()
 	if err != nil {
 		return err
 	}
 
+	couponKey := "coupons_" + time.Now().Format("20060102")
+
+	err = r.redisClient.LPush(ctx, couponKey, couponJSON).Err()
+	if err != nil {
+		return err
+	}
+
+	/*
+	   // Create a coupon event
+	*/
 	return nil
 }
 
@@ -64,6 +101,53 @@ func (r *CouponActiveRepository) CheckReserveCoupon(ctx context.Context, couponA
 		return false, types.ErrorUserNotReserveCouponActive
 	}
 	return true, nil
+}
+
+func (r *CouponActiveRepository) PurchaseCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) (model.Coupon, error) {
+	couponPurchaseKey := couponActive.ActiveDate.Format("coupan_purchased_20060102")
+	couponKey := "coupons_" + time.Now().Format("20060102")
+
+	script := `
+		if redis.call('GETBIT', KEYS[1], ARGV[1]) == 1 then
+			return 'ALREADY_PURCHASED' -- User has already purchased a coupon, return specific message
+		end
+
+		-- Try to pop a coupon from the coupon list
+		local coupon = redis.call('LPOP', KEYS[2])
+		if coupon then
+			-- Mark the user as having purchased a coupon
+			redis.call('SETBIT', KEYS[1], ARGV[1], 1)
+		
+			return coupon
+		else
+			return 'NO_COUPONS'
+		end
+	`
+
+	result, err := r.redisClient.Eval(ctx, script, []string{couponPurchaseKey, couponKey}, userId).Result()
+	if err != nil {
+		return model.Coupon{}, err
+	}
+
+	switch result.(string) {
+	case "ALREADY_PURCHASED":
+		return model.Coupon{}, types.ErrorUserAlreadyPurchasedCoupon
+	case "NO_COUPONS":
+		return model.Coupon{}, types.ErrorNoCouponToPurchase
+	default:
+		couponJSON, ok := result.(string)
+		if !ok {
+			return model.Coupon{}, fmt.Errorf("unexpected result type: %T, value: %v", result, result)
+		}
+
+		var coupon model.Coupon
+		err = coupon.Unmarshal([]byte(couponJSON))
+		if err != nil {
+			return model.Coupon{}, fmt.Errorf("failed to unmarshal coupon: %v", err)
+		}
+
+		return coupon, nil
+	}
 }
 
 type CacheItem struct {

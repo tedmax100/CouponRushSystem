@@ -2,20 +2,26 @@ package coupon
 
 import (
 	"context"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/tedmax100/CouponRushSystem/internal/coupon/model"
 	"github.com/tedmax100/CouponRushSystem/internal/coupon/repository"
 	"github.com/tedmax100/CouponRushSystem/internal/message_queue"
 )
 
 type CouponActiveService struct {
-	repo          repository.CouponActiveRepository
+	repo          *repository.CouponActiveRepository
 	message_queue *message_queue.Broker
+	resevedChan   chan<- model.UserReservedEvent
+	purchasedChan chan model.PurchaseCouponEvent
 }
 
-func NewCouponActiveService(repo repository.CouponActiveRepository) *CouponActiveService {
+func NewCouponActiveService(repo *repository.CouponActiveRepository, resevedChan chan model.UserReservedEvent, purchasedChan chan model.PurchaseCouponEvent) *CouponActiveService {
 	return &CouponActiveService{
-		repo: repo,
+		repo:          repo,
+		resevedChan:   resevedChan,
+		purchasedChan: purchasedChan,
 	}
 }
 
@@ -24,48 +30,71 @@ func (s *CouponActiveService) GetActive(ctx context.Context, activeId uint64) (m
 }
 
 func (s *CouponActiveService) ReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) error {
-	if err := s.repo.ReserveCoupon(ctx, couponActive, userId); err != nil {
+	resevedSeq, err := s.repo.ReserveCoupon(ctx, couponActive, userId)
+	if err != nil {
 		return err
 	}
 
-	event := model.UserReservation{
+	err = s.ProcessAndGenerateCoupon(ctx, resevedSeq, couponActive)
+	if err != nil {
+		return err
+	}
+
+	event := model.UserReservedEvent{
 		UserID:         userId,
 		CouponActiveID: couponActive.ID,
 	}
 
-	binaryBody, err := event.Marshal()
-	if err != nil {
-		return err
-	}
-	if err := s.message_queue.SendPurchaseCouponEvent(ctx, binaryBody); err != nil {
-		return err
+	select {
+	case s.resevedChan <- event:
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 
 	return nil
 }
 
-func (s *CouponActiveService) PurchaseCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) error {
+func (s *CouponActiveService) PurchaseCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) (model.Coupon, error) {
 	_, err := s.repo.CheckReserveCoupon(ctx, couponActive, userId)
 	if err != nil {
-		return err
+		return model.Coupon{}, err
 	}
 
-	if err := s.repo.PurchaseCoupon(ctx, couponActive, userId); err != nil {
-		return err
-	}
-
-	event := model.UserReservation{
-		UserID:         userId,
-		CouponActiveID: couponActive.ID,
-	}
-
-	binaryBody, err := event.Marshal()
+	purchasedCoupon, err := s.repo.PurchaseCoupon(ctx, couponActive, userId)
 	if err != nil {
-		return err
-	}
-	if err := s.message_queue.SendPurchaseCouponEvent(ctx, binaryBody); err != nil {
-		return err
+		return model.Coupon{}, err
 	}
 
+	event := model.PurchaseCouponEvent{
+		UserID: userId,
+		Coupon: purchasedCoupon,
+	}
+
+	select {
+	case s.purchasedChan <- event:
+	case <-ctx.Done():
+		return model.Coupon{}, ctx.Err()
+	}
+
+	return purchasedCoupon, nil
+}
+
+func (s *CouponActiveService) ProcessAndGenerateCoupon(ctx context.Context, resevedSeq uint64, couponActive model.CouponActive) error {
+	if resevedSeq%10 == 5 {
+		couponCode, err := uuid.NewRandom()
+		if err != nil {
+			return err
+		}
+		coupon := model.Coupon{
+			Code:           couponCode.String(),
+			CouponActiveID: couponActive.ID,
+			CreatedAt:      time.Now().UTC(),
+		}
+
+		err = s.repo.AddCoupon(ctx, coupon)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

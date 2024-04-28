@@ -118,8 +118,8 @@ NOT_RESERVATION
 
 ## DB Data Schema
 User : {
-    user_id : uint64
-    user_name : string 
+    id : uint64
+    name : string 
 }
 
 Active : {

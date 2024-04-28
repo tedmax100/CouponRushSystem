@@ -18,6 +18,10 @@ func (s CouponActive) IsValidToReserve(now time.Time) bool {
 	return s.State == OPENING || s.ActiveBeginTime.Before(now) && s.ActiveEndTime.After(now)
 }
 
+func (s CouponActive) IsValidToPurchase(now time.Time) bool {
+	return s.State == OPENING || now.After(s.ActiveEndTime)
+}
+
 type CouponActiveState int
 
 const (
