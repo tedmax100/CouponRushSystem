@@ -185,7 +185,13 @@ erDiagram
 
 ## /cmd
 
-執行 Server 或 Preload 的進入點
+執行 Server 或 Preload 或 event consumer 的進入點
+
+### Preload
+用於載入user 和 coupon 進入redis作為cache 
+
+### Event Consumer
+用於消費 mq中的 event, 並持久化至db, 或儲存成 materialized view
 
 ## /doc
 

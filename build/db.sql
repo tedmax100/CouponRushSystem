@@ -9,7 +9,9 @@ CREATE TYPE coupon_active_state AS ENUM ('NOT_OPEN', 'OPENING', 'CLOSED');
 
 CREATE TABLE coupon_active (
     id BIGINT NOT NULL PRIMARY KEY,
-    date BIGINT NOT NULL,
+    date Date NOT NULL,
+    begin_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     state coupon_active_state NOT NULL
 );
 
