@@ -1,0 +1,245 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+      "title": "Swagger Coupon Rush Server API",
+      "description": "This is the Coupon Rush ServerOpenAPI.",
+      "contact": {
+        "name": "Developer Support - Nathan",
+        "email": "tedmax100@gmail.com"
+      },
+      "license": {
+        "name": "Proprietary"
+      },
+      "version": "1.0"
+    },
+    "servers": [
+      {
+        "url": "/"
+      }
+    ],
+    "paths": {
+      "/coupons/purchase": {
+        "post": {
+          "tags": [
+            "Coupons"
+          ],
+          "summary": "Purchase a coupon",
+          "description": "Purchase a coupon",
+          "requestBody": {
+            "description": "Purchase Coupon Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dto.PurchaseCouponRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.PurchaseCouponResponse"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.CommonErrorResponse"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.CommonErrorResponse"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Not Found",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.CommonErrorResponse"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.CommonErrorResponse"
+                  }
+                }
+              }
+            }
+          },
+          "x-codegen-request-body-name": "purchaseReq"
+        }
+      },
+      "/coupons/reserve": {
+        "post": {
+          "tags": [
+            "Coupons"
+          ],
+          "summary": "Reserve a coupon",
+          "description": "Reserve a coupon",
+          "requestBody": {
+            "description": "Reserve Coupon Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dto.ReserveCouponRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.ReserveCouponResponse"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.CommonErrorResponse"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.CommonErrorResponse"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Not Found",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.CommonErrorResponse"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/dto.CommonErrorResponse"
+                  }
+                }
+              }
+            }
+          },
+          "x-codegen-request-body-name": "reserveReq"
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "dto.CommonErrorResponse": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "integer"
+            },
+            "message": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        "dto.PurchaseCouponRequest": {
+          "required": [
+            "active_id",
+            "user_id"
+          ],
+          "type": "object",
+          "properties": {
+            "active_id": {
+              "type": "integer"
+            },
+            "user_id": {
+              "type": "integer"
+            }
+          }
+        },
+        "dto.PurchaseCouponResponse": {
+          "type": "object",
+          "properties": {
+            "active_id": {
+              "type": "integer"
+            },
+            "coupon_code": {
+              "type": "string"
+            },
+            "user_id": {
+              "type": "integer"
+            }
+          }
+        },
+        "dto.ReserveCouponRequest": {
+          "required": [
+            "active_id",
+            "user_id"
+          ],
+          "type": "object",
+          "properties": {
+            "active_id": {
+              "type": "integer"
+            },
+            "user_id": {
+              "type": "integer"
+            }
+          }
+        },
+        "dto.ReserveCouponResponse": {
+          "type": "object",
+          "properties": {
+            "active_id": {
+              "type": "integer"
+            },
+            "reserved_time": {
+              "type": "string"
+            },
+            "user_id": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "x-original-swagger-version": "2.0"
+  }
