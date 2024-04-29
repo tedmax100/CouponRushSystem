@@ -21,6 +21,6 @@ func (u *Coupon) Unmarshal(data []byte) error {
 }
 
 type PurchaseCouponEvent struct {
-	UserID uint32 `json:"userId"`
+	UserID uint64 `json:"userId"`
 	Coupon
 }

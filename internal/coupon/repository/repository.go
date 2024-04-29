@@ -43,7 +43,7 @@ func (r *CouponActiveRepository) GetActive(ctx context.Context, activeId uint64)
 	return couponActive, nil
 }
 
-func (r *CouponActiveRepository) ReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) (uint64, error) {
+func (r *CouponActiveRepository) ReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint64) (uint64, error) {
 	dateKey := couponActive.ActiveDate.Format("coupan_active_20060102")
 	reserveAtiveAmounKey := couponActive.ActiveDate.Format("reserve_active_amount_20060102")
 
@@ -90,7 +90,7 @@ func (r *CouponActiveRepository) AddCoupon(ctx context.Context, coupon model.Cou
 	return nil
 }
 
-func (r *CouponActiveRepository) CheckReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) (bool, error) {
+func (r *CouponActiveRepository) CheckReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint64) (bool, error) {
 	dateKey := couponActive.ActiveDate.Format("coupan_active_20060102")
 
 	bitValue, err := r.redisClient.GetBit(ctx, dateKey, int64(userId)).Result()
@@ -103,7 +103,7 @@ func (r *CouponActiveRepository) CheckReserveCoupon(ctx context.Context, couponA
 	return true, nil
 }
 
-func (r *CouponActiveRepository) PurchaseCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) (model.Coupon, error) {
+func (r *CouponActiveRepository) PurchaseCoupon(ctx context.Context, couponActive model.CouponActive, userId uint64) (model.Coupon, error) {
 	couponPurchaseKey := couponActive.ActiveDate.Format("coupan_purchased_20060102")
 	couponKey := "coupons_" + time.Now().Format("20060102")
 

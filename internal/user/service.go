@@ -15,6 +15,6 @@ func NewUserSertive(repo repository.UserRepository) *UserSertive {
 	}
 }
 
-func (s *UserSertive) GetUser(id int32) (model.User, error) {
+func (s *UserSertive) GetUser(id uint64) (model.User, error) {
 	return s.repo.GetUser(id)
 }

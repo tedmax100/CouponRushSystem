@@ -4,6 +4,9 @@ GO_VERSION=1.22
 GIT_BRANCH=${shell git rev-parse --abbrev-ref HEAD}
 BUILD_DATE=$(shell git log -n1 --pretty='format:%cd' --date=format:'%Y%m%d')
 
+.PHONY: run-server
+run-server:
+	cd cmd/server ; go run main.go
 
 .PHONY: build
 build: 

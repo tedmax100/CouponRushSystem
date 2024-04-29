@@ -7,14 +7,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/tedmax100/CouponRushSystem/internal/coupon/model"
 	"github.com/tedmax100/CouponRushSystem/internal/coupon/repository"
-	"github.com/tedmax100/CouponRushSystem/internal/message_queue"
+	//"github.com/tedmax100/CouponRushSystem/internal/message_queue"
 )
 
 type CouponActiveService struct {
-	repo          *repository.CouponActiveRepository
-	message_queue *message_queue.Broker
+	repo *repository.CouponActiveRepository
+	//message_queue *message_queue.Broker
 	resevedChan   chan<- model.UserReservedEvent
-	purchasedChan chan model.PurchaseCouponEvent
+	purchasedChan chan<- model.PurchaseCouponEvent
 }
 
 func NewCouponActiveService(repo *repository.CouponActiveRepository, resevedChan chan model.UserReservedEvent, purchasedChan chan model.PurchaseCouponEvent) *CouponActiveService {
@@ -29,7 +29,7 @@ func (s *CouponActiveService) GetActive(ctx context.Context, activeId uint64) (m
 	return s.repo.GetActive(ctx, activeId)
 }
 
-func (s *CouponActiveService) ReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) error {
+func (s *CouponActiveService) ReserveCoupon(ctx context.Context, couponActive model.CouponActive, userId uint64) error {
 	resevedSeq, err := s.repo.ReserveCoupon(ctx, couponActive, userId)
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (s *CouponActiveService) ReserveCoupon(ctx context.Context, couponActive mo
 	return nil
 }
 
-func (s *CouponActiveService) PurchaseCoupon(ctx context.Context, couponActive model.CouponActive, userId uint32) (model.Coupon, error) {
+func (s *CouponActiveService) PurchaseCoupon(ctx context.Context, couponActive model.CouponActive, userId uint64) (model.Coupon, error) {
 	_, err := s.repo.CheckReserveCoupon(ctx, couponActive, userId)
 	if err != nil {
 		return model.Coupon{}, err

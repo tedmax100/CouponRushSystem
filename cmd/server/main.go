@@ -80,6 +80,7 @@ func runServer(configObj *config.Config, lc fx.Lifecycle) {
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
+			log.Info(ctx, "service terminating")
 			return server.Shutdown(ctx)
 		},
 	})

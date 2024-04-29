@@ -21,6 +21,19 @@ func NewHandler() *Handler {
 	return &Handler{}
 }
 
+// ReserveCoupon reserves a coupon
+// @Summary Reserve a coupon
+// @Description Reserve a coupon
+// @Tags Coupons
+// @Accept  json
+// @Produce  json
+// @Param reserveReq body dto.ReserveCouponRequest true "Reserve Coupon Request"
+// @Success 200 {object} dto.ReserveCouponResponse
+// @Failure 400 {object} dto.CommonErrorResponse
+// @Failure 401 {object} dto.CommonErrorResponse
+// @Failure 404 {object} dto.CommonErrorResponse
+// @Failure 500 {object} dto.CommonErrorResponse
+// @Router /coupons/reserve [post]
 func (h *Handler) ReserveCoupon(c *gin.Context) {
 	var reserveReq dto.ReserveCouponRequest
 
@@ -79,9 +92,34 @@ func (h *Handler) ReserveCoupon(c *gin.Context) {
 		return
 	}
 
-	h.couponService.ReserveCoupon(c, couponActive, reserveReq.UserID)
+	if err := h.couponService.ReserveCoupon(c, couponActive, reserveReq.UserID); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.CommonErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Path:    c.Request.URL.Path,
+			Message: err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, dto.ReserveCouponResponse{
+		UserID:       reserveReq.UserID,
+		ActiveID:     reserveReq.ActiveID,
+		ReservedTime: time.Now().UTC(),
+	})
 }
 
+// PurchaseCoupon purchases a coupon
+// @Summary Purchase a coupon
+// @Description Purchase a coupon
+// @Tags Coupons
+// @Accept  json
+// @Produce  json
+// @Param purchaseReq body dto.PurchaseCouponRequest true "Purchase Coupon Request"
+// @Success 200 {object} dto.PurchaseCouponResponse
+// @Failure 400 {object} dto.CommonErrorResponse
+// @Failure 401 {object} dto.CommonErrorResponse
+// @Failure 404 {object} dto.CommonErrorResponse
+// @Failure 500 {object} dto.CommonErrorResponse
+// @Router /coupons/purchase [post]
 func (h *Handler) PurchaseCoupon(c *gin.Context) {
 	var reserveReq dto.ReserveCouponRequest
 

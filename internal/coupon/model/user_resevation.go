@@ -5,7 +5,7 @@ import (
 )
 
 type UserReservedEvent struct {
-	UserID         uint32 `json:"user_id" db:"user_id"`
+	UserID         uint64 `json:"user_id" db:"user_id"`
 	CouponActiveID uint64 `json:"coupon_active_id" db:"coupon_active_id"`
 }
 

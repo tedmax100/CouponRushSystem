@@ -25,7 +25,7 @@ func NewUserRepository(db *sqlx.DB, redis *redis.Client) *UserRepository {
 	}
 }
 
-func (r *UserRepository) GetUser(id uint32) (model.User, error) {
+func (r *UserRepository) GetUser(id uint64) (model.User, error) {
 	if item, exists := r.getFromCache(id); exists {
 		return item, nil
 	}
@@ -48,7 +48,7 @@ type CacheItem struct {
 	Timer *time.Timer
 }
 
-func (r *UserRepository) addToCache(id uint32, item model.User) {
+func (r *UserRepository) addToCache(id uint64, item model.User) {
 	now := time.Now()
 	duration := now.Add(time.Hour * 1).Sub(now)
 
@@ -63,7 +63,7 @@ func (r *UserRepository) addToCache(id uint32, item model.User) {
 
 }
 
-func (r *UserRepository) getFromCache(id uint32) (model.User, bool) {
+func (r *UserRepository) getFromCache(id uint64) (model.User, bool) {
 	value, exist := r.couponActiveCache.Load(id)
 	if exist {
 		return value.(CacheItem).Value, true
@@ -71,6 +71,6 @@ func (r *UserRepository) getFromCache(id uint32) (model.User, bool) {
 	return model.User{}, false
 }
 
-func (r *UserRepository) removeFromCache(id uint32) {
+func (r *UserRepository) removeFromCache(id uint64) {
 	r.couponActiveCache.Delete(id)
 }
