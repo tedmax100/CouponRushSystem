@@ -12,6 +12,10 @@ run-server:
 build: 
 	go build  -v -ldflags="-X 'main.GitCommit=${GIT_COMMIT}' -X 'main.GoVersion=${GO_VERSION}'  -X 'main.BuildDate=${BUILD_DATE}'  -X 'main.GitBranch=${GIT_BRANCH}'" -o main ./cmd/server/main.go
 
+.PHONY: swag-init
+swag-init:
+	swag init --parseDependency --parseInternal --parseDepth 1 -o api/docs -g cmd/server/main.go
+
 .PHONY: docker-build
 docker-build:
 	docker build \

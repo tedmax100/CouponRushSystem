@@ -1,0 +1,137 @@
+definitions:
+  dto.CommonErrorResponse:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      path:
+        type: string
+    type: object
+  dto.PurchaseCouponRequest:
+    properties:
+      active_id:
+        type: integer
+      user_id:
+        type: integer
+    required:
+    - active_id
+    - user_id
+    type: object
+  dto.PurchaseCouponResponse:
+    properties:
+      active_id:
+        type: integer
+      coupon_code:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.ReserveCouponRequest:
+    properties:
+      active_id:
+        type: integer
+      user_id:
+        type: integer
+    required:
+    - active_id
+    - user_id
+    type: object
+  dto.ReserveCouponResponse:
+    properties:
+      active_id:
+        type: integer
+      reserved_time:
+        type: string
+      user_id:
+        type: integer
+    type: object
+externalDocs:
+  description: Coupon Rush Server Architecture Documentation
+info:
+  contact:
+    email: tedmax100@gmail.com
+    name: Developer Support - Nathan
+  description: This is the Coupon Rush ServerOpenAPI.
+  license:
+    name: Proprietary
+  title: Swagger Coupon Rush Server API
+  version: "1.0"
+paths:
+  /coupons/purchase:
+    post:
+      consumes:
+      - application/json
+      description: Purchase a coupon
+      parameters:
+      - description: Purchase Coupon Request
+        in: body
+        name: purchaseReq
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PurchaseCouponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PurchaseCouponResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.CommonErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.CommonErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.CommonErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.CommonErrorResponse'
+      summary: Purchase a coupon
+      tags:
+      - Coupons
+  /coupons/reserve:
+    post:
+      consumes:
+      - application/json
+      description: Reserve a coupon
+      parameters:
+      - description: Reserve Coupon Request
+        in: body
+        name: reserveReq
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ReserveCouponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ReserveCouponResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.CommonErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.CommonErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.CommonErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.CommonErrorResponse'
+      summary: Reserve a coupon
+      tags:
+      - Coupons
+swagger: "2.0"

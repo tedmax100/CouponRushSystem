@@ -23,6 +23,14 @@ var (
 	BuildDate = ""
 )
 
+//	@title			Swagger Coupon Rush Server API
+//  @version 1.0
+//	@description	This is the Coupon Rush ServerOpenAPI.
+//	@contact.name	Developer Support - Nathan
+//	@contact.email	tedmax100@gmail.com
+//	@license.name	Proprietary
+//  @externalDocs.description Coupon Rush Server Architecture Documentation
+
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
