@@ -19,10 +19,9 @@ type RedisParams struct {
 }
 
 func NewRedis(p RedisParams) *redis.Client {
-	log.Debug(context.Background(), "", zap.Any("config", p.Config))
 	option, err := redis.ParseURL(p.Config.Redis)
 	if err != nil {
-		log.Fatal(context.Background(), err, zap.String("address", p.Config.Redis))
+		log.Fatal(p.Ctx, err, zap.String("address", p.Config.Redis))
 	}
 	option.PoolSize = 5
 	client := redis.NewClient(&redis.Options{
@@ -32,14 +31,14 @@ func NewRedis(p RedisParams) *redis.Client {
 	})
 
 	if err := redisotel.InstrumentTracing(client); err != nil {
-		log.Fatal(context.Background(), err)
+		log.Fatal(p.Ctx, err)
 	}
 	if err := redisotel.InstrumentMetrics(client); err != nil {
-		log.Fatal(context.Background(), err)
+		log.Fatal(p.Ctx, err)
 	}
 
 	if err := client.Ping(p.Ctx).Err(); err != nil {
-		log.Fatal(context.Background(), err)
+		log.Fatal(p.Ctx, err)
 	}
 
 	return client

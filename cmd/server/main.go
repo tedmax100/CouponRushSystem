@@ -9,9 +9,16 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tedmax100/CouponRushSystem/internal/api"
 	"github.com/tedmax100/CouponRushSystem/internal/config"
+	"github.com/tedmax100/CouponRushSystem/internal/coupon"
+	"github.com/tedmax100/CouponRushSystem/internal/coupon/model"
+	couponRepo "github.com/tedmax100/CouponRushSystem/internal/coupon/repository"
 	"github.com/tedmax100/CouponRushSystem/internal/database"
 	"github.com/tedmax100/CouponRushSystem/internal/log"
+	"github.com/tedmax100/CouponRushSystem/internal/message_queue"
+	"github.com/tedmax100/CouponRushSystem/internal/user"
+	userRepo "github.com/tedmax100/CouponRushSystem/internal/user/repository"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -48,8 +55,26 @@ func main() {
 		fx.Provide(func() context.CancelFunc {
 			return cancel
 		}),
+		fx.Provide(func() chan model.UserReservedEvent {
+			return make(chan model.UserReservedEvent)
+		}),
+		fx.Provide(func() chan model.PurchaseCouponEvent {
+			return make(chan model.PurchaseCouponEvent)
+		}),
+		fx.Provide(func() *gin.Engine {
+			r := gin.New()
+			r.Use(gin.Recovery())
+			r.ContextWithFallback = true
+			r.Use(otelgin.Middleware("coupun_rush_server"))
+			return r
+		}),
 		config.Module,
 		database.Module,
+		message_queue.Module,
+		coupon.Module,
+		couponRepo.Module,
+		user.Module,
+		userRepo.Module,
 		fx.Invoke(func(cancelFunc context.CancelFunc, lc fx.Lifecycle) {
 			lc.Append(
 				fx.Hook{
@@ -69,16 +94,25 @@ func main() {
 	app.Run()
 }
 
-func runServer(configObj *config.Config, lc fx.Lifecycle) {
+type ServerParams struct {
+	fx.In
+	CouponService *coupon.CouponActiveService
+	UserService   *user.UserSertive
+	HandlerParams api.HandlerParams
+	ConfigObj     *config.Config
+}
+
+func runServer(p ServerParams, lc fx.Lifecycle) {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.ContextWithFallback = true
 	r.Use(otelgin.Middleware("coupun_rush_server"))
-	//api.SetupRouter(r, GitCommit, baseRepo, mainRepo, settingRepo, jobRepo, contract, bondContract,
+
+	api.SetupRouter(r, p.HandlerParams)
 
 	server := &http.Server{
-		Addr:    ":" + configObj.Port,
+		Addr:    ":" + p.ConfigObj.Port,
 		Handler: r,
 	}
 

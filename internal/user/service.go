@@ -6,10 +6,10 @@ import (
 )
 
 type UserSertive struct {
-	repo repository.UserRepository
+	repo *repository.UserRepository
 }
 
-func NewUserSertive(repo repository.UserRepository) *UserSertive {
+func NewUserSertive(repo *repository.UserRepository) *UserSertive {
 	return &UserSertive{
 		repo: repo,
 	}

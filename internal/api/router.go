@@ -8,11 +8,11 @@ import (
 	//ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func SetupRouter(engine *gin.Engine) {
-	h := NewHandler()
+func SetupRouter(engine *gin.Engine, p HandlerParams) {
+	h := NewHandler(p)
 
-	docs.SwaggerInfo.BasePath = "/api/v1"
-	v1 := engine.Group("/v1")
+	docs.SwaggerInfo.BasePath = "/api"
+	v1 := engine.Group("/api/v1")
 	v1.POST("/coupons/reservations", h.ReserveCoupon)
 	v1.POST("/coupons/purchases", h.PurchaseCoupon)
 }

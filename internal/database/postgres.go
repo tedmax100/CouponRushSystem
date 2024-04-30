@@ -30,13 +30,13 @@ func NewDB(p DbParams) *sqlx.DB {
 	dsn += "?application_name=coupon_rush_server&sslmode=disable"
 	oteldb, err := otelsql.Open(POSTGRES, dsn)
 	if err != nil {
-		log.Fatal(context.Background(), err)
+		log.Fatal(p.Ctx, err)
 	}
 	err = otelsql.RegisterDBStatsMetrics(oteldb, otelsql.WithAttributes(
 		semconv.DBSystemPostgreSQL,
 	))
 	if err != nil {
-		log.Fatal(context.Background(), err)
+		log.Fatal(p.Ctx, err)
 	}
 
 	db := sqlx.NewDb(oteldb, POSTGRES)
@@ -46,7 +46,7 @@ func NewDB(p DbParams) *sqlx.DB {
 	db.SetConnMaxLifetime(time.Hour)
 
 	if err := db.Ping(); err != nil {
-		log.Fatal(context.Background(), err, zap.Any("msg", "Database init failed"))
+		log.Fatal(p.Ctx, err, zap.Any("msg", "Database init failed"))
 	}
 
 	return db

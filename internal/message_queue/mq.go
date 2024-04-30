@@ -21,29 +21,32 @@ const (
 	TYPE_JSON                    = "application/json"
 	ReconnectTimes               = 3
 	ReconnectInterval            = 100
-	ReservationActiveExchange    = "ReservationActiveExchange"
+	CouponEventExchange          = "CouponEvent"
 	UserReserveCouponActiveQueue = "UserReserveCouponQueue"
 	PurchaseCouponQueue          = "PurchaseCouponQueue"
+	UserRserveCouponActivekey    = "UserReserveCouponActive"
+	PurchaseCouponKey            = "PurchaseCoupon"
 )
-
-type Broker struct {
-	sync.Mutex
-	ctx                        context.Context
-	url                        string
-	conn                       *amqp.Connection
-	connected                  bool
-	close                      chan bool
-	waitConnection             chan struct{}
-	reservationActiveChan      *amqp.Channel
-	userReseveCouponActiveChan *amqp.Channel
-	purchaseChan               *amqp.Channel
-}
 
 type BrokerParams struct {
 	fx.In
 
 	Ctx    context.Context
-	Config config.Config
+	Config *config.Config
+}
+
+type Broker struct {
+	sync.Mutex
+	ctx            context.Context
+	url            string
+	conn           *amqp.Connection
+	connected      bool
+	close          chan bool
+	waitConnection chan struct{}
+	ch             *amqp.Channel
+	//newCouponActiveChan *amqp.Channel
+	//userReseveCouponActiveChan *amqp.Channel
+	//purchaseChan               *amqp.Channel
 }
 
 func NewBroker(p BrokerParams) *Broker {
@@ -99,11 +102,10 @@ func (b *Broker) connect() error {
 	b.Lock()
 	b.connected = true
 	b.Unlock()
-	if err := b.Init(); err != nil {
+	if err := b.initial(); err != nil {
 		log.Error(b.ctx, err)
 		return err
 	}
-	//b.channelSubsctibe()
 	go b.reconnect()
 
 	return nil
@@ -120,53 +122,22 @@ func (b *Broker) tryConnect() error {
 	}
 	b.conn = conn
 
-	reservationActiveChan, err := conn.Channel()
+	ch, err := conn.Channel()
 	if err != nil {
 		log.Error(b.ctx, err, zap.String("msg", "Failed to create channel"))
 		return err
 	}
-	err = reservationActiveChan.Qos(
-		1,     // prefetch count
-		0,     // prefetch size
-		false, // global
+	err = ch.Qos(
+		5,
+		0,
+		false,
 	)
 	if err != nil {
 		log.Error(b.ctx, err, zap.String("msg", "Failed to set QOS"))
 		return err
 	}
-	b.reservationActiveChan = reservationActiveChan
+	b.ch = ch
 
-	userReseveCouponActiveChan, err := conn.Channel()
-	if err != nil {
-		log.Error(b.ctx, err, zap.String("msg", "Failed to create channel"))
-		return err
-	}
-	err = userReseveCouponActiveChan.Qos(
-		1,     // prefetch count
-		0,     // prefetch size
-		false, // global
-	)
-	if err != nil {
-		log.Error(b.ctx, err, zap.String("msg", "Failed to set QOS"))
-		return err
-	}
-	b.userReseveCouponActiveChan = userReseveCouponActiveChan
-
-	purchaseChan, err := conn.Channel()
-	if err != nil {
-		log.Error(b.ctx, err, zap.String("msg", "Failed to create channel"))
-		return err
-	}
-	err = purchaseChan.Qos(
-		1,     // prefetch count
-		0,     // prefetch size
-		false, // global
-	)
-	if err != nil {
-		log.Error(b.ctx, err, zap.String("msg", "Failed to set QOS"))
-		return err
-	}
-	b.purchaseChan = purchaseChan
 	return nil
 }
 
@@ -186,12 +157,8 @@ func (b *Broker) Connect() error {
 	return b.connect()
 }
 
-func (b *Broker) Close() error {
-	err := b.reservationActiveChan.Close()
-	if err != nil {
-		return err
-	}
-	err = b.purchaseChan.Close()
+func (b *Broker) closeConn() error {
+	err := b.ch.Close()
 	if err != nil {
 		return err
 	}
@@ -202,71 +169,33 @@ func (b *Broker) Close() error {
 	return nil
 }
 
-func (b *Broker) Init() error {
-	if err := b.DeclareExchanges(); err != nil {
+func (b *Broker) initial() error {
+	if err := b.declareExchanges(); err != nil {
 		log.Error(b.ctx, err)
 		return err
 	}
 
-	if err := b.DeclareQueues(); err != nil {
+	if err := b.declareQueues(); err != nil {
 		log.Error(b.ctx, err)
 		return err
 	}
 	return nil
 }
 
-func (b *Broker) DeclareExchanges() error {
-	err := b.reservationActiveChan.ExchangeDeclare(
-		ReservationActiveExchange,
-		FANOUT,
+func (b *Broker) declareExchanges() error {
+	return b.ch.ExchangeDeclare(
+		CouponEventExchange,
+		DIRECT,
 		true,
 		false,
 		false,
 		false,
 		nil,
 	)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
-func (b *Broker) DeclareQueues() error {
-	_, err := b.reservationActiveChan.QueueDeclare(
-		PurchaseCouponQueue,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-	err = b.reservationActiveChan.QueueBind(
-		PurchaseCouponQueue,
-		"",
-		ReservationActiveExchange,
-		false,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = b.purchaseChan.QueueDeclare(
-		PurchaseCouponQueue,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = b.userReseveCouponActiveChan.QueueDeclare(
+func (b *Broker) declareQueues() error {
+	_, err := b.ch.QueueDeclare(
 		UserReserveCouponActiveQueue,
 		true,
 		false,
@@ -277,6 +206,27 @@ func (b *Broker) DeclareQueues() error {
 	if err != nil {
 		return err
 	}
+
+	_, err = b.ch.QueueDeclare(
+		PurchaseCouponQueue,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	if err = b.ch.QueueBind(UserReserveCouponActiveQueue, UserRserveCouponActivekey, CouponEventExchange, false, nil); err != nil {
+		return err
+	}
+
+	if err = b.ch.QueueBind(PurchaseCouponQueue, PurchaseCouponKey, CouponEventExchange, false, nil); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -287,11 +237,29 @@ func (b *Broker) setToDisconnect() {
 	b.Unlock()
 }
 
-func (b *Broker) SendPurchaseCouponEvent(ctx context.Context, msg []byte) error {
-	err := b.userReseveCouponActiveChan.PublishWithContext(
+func (b *Broker) SendReservedCouponActiveEvent(ctx context.Context, msg []byte) error {
+	err := b.ch.PublishWithContext(
 		ctx,
-		"",
-		UserReserveCouponActiveQueue,
+		CouponEventExchange,
+		UserRserveCouponActivekey,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: TYPE_JSON,
+			Body:        msg,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *Broker) SendPurchaseCouponEvent(ctx context.Context, msg []byte) error {
+	err := b.ch.PublishWithContext(
+		ctx,
+		CouponEventExchange,
+		PurchaseCouponKey,
 		false,
 		false,
 		amqp.Publishing{
@@ -317,7 +285,7 @@ func RunBroker(broker *Broker, lc fx.Lifecycle) {
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
-				err := broker.Close()
+				err := broker.closeConn()
 				if err != nil {
 					log.Error(broker.ctx, err)
 					return err

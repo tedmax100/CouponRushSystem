@@ -31,7 +31,7 @@ func (r *UserRepository) GetUser(id uint64) (model.User, error) {
 	}
 
 	user := model.User{}
-	if err := r.DB.Get(&user, "SELECT id, name FROM user WHERE id = ? LIMIT 1", id); err != nil {
+	if err := r.DB.Get(&user, "SELECT id, name FROM public.user WHERE id = $1 LIMIT 1", id); err != nil {
 		if err == sql.ErrNoRows {
 			return user, types.ErrorUserNotFound
 		}

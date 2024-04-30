@@ -12,10 +12,11 @@ func (e *SystenError) Error() string {
 }
 
 var (
-	ErrorUserNotFound               = &SystenError{Code: 1001, Message: "User not found"}
-	ErrorCouponActiveNotFound       = &SystenError{Code: 1002, Message: "Coupon active not found"}
-	ErrorCouponNotFound             = &SystenError{Code: 1003, Message: "Coupon not found"}
-	ErrorUserNotReserveCouponActive = &SystenError{Code: 1004, Message: "User not reserve coupon active"}
-	ErrorUserAlreadyPurchasedCoupon = &SystenError{Code: 1005, Message: "User already purchased coupon"}
-	ErrorNoCouponToPurchase         = &SystenError{Code: 1006, Message: "No coupon to purchase"}
+	ErrorUserNotFound                    = &SystenError{Code: 1001, Message: "User not found"}
+	ErrorCouponActiveNotFound            = &SystenError{Code: 1002, Message: "Coupon active not found"}
+	ErrorCouponNotFound                  = &SystenError{Code: 1003, Message: "Coupon not found"}
+	ErrorUserNotReserveCouponActive      = &SystenError{Code: 1004, Message: "User not reserve coupon active"}
+	ErrorUserAlreadyPurchasedCoupon      = &SystenError{Code: 1005, Message: "User already purchased coupon"}
+	ErrorNoCouponToPurchase              = &SystenError{Code: 1006, Message: "No coupon to purchase"}
+	ErrorUserAlreadyReservedCouponActive = &SystenError{Code: 1007, Message: "User already reserved coupon active"}
 )

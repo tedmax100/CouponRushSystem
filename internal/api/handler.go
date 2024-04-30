@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -10,15 +11,27 @@ import (
 	"github.com/tedmax100/CouponRushSystem/internal/coupon"
 	"github.com/tedmax100/CouponRushSystem/internal/types"
 	"github.com/tedmax100/CouponRushSystem/internal/user"
+	"go.uber.org/fx"
 )
+
+type HandlerParams struct {
+	fx.In
+
+	Ctx           context.Context
+	CouponService *coupon.CouponActiveService
+	UserService   *user.UserSertive
+}
 
 type Handler struct {
 	couponService *coupon.CouponActiveService
 	userService   *user.UserSertive
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(p HandlerParams) *Handler {
+	return &Handler{
+		couponService: p.CouponService,
+		userService:   p.UserService,
+	}
 }
 
 // ReserveCoupon reserves a coupon

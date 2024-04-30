@@ -33,13 +33,14 @@ func (r *CouponActiveRepository) GetActive(ctx context.Context, activeId uint64)
 	}
 
 	couponActive := model.CouponActive{}
-	if err := r.DB.GetContext(ctx, &couponActive, "SELECT id, date,begin_time, end_time, state begin FROM active WHERE id = ? LIMIT 1", activeId); err != nil {
+	if err := r.DB.GetContext(ctx, &couponActive, "SELECT id, date,begin_time, end_time, state FROM coupon_active WHERE id = $1 LIMIT 1", activeId); err != nil {
 		if err == sql.ErrNoRows {
 			return couponActive, types.ErrorCouponActiveNotFound
 		}
 
 		return couponActive, err
 	}
+	r.addToCache(couponActive.ID, couponActive)
 	return couponActive, nil
 }
 
@@ -52,6 +53,10 @@ func (r *CouponActiveRepository) ReserveCoupon(ctx context.Context, couponActive
 		local reserveAtiveAmounKey = KEYS[2]
 		local userId = ARGV[1]
 
+		if redis.call('GETBIT', dateKey, userId) == 1 then
+        	return -1
+    	end
+		
 		redis.call('SETBIT', dateKey, userId, 1)
 		local reservedSeq = redis.call('INCR', reserveAtiveAmounKey)
 
@@ -63,12 +68,16 @@ func (r *CouponActiveRepository) ReserveCoupon(ctx context.Context, couponActive
 		return 0, err
 	}
 
-	resevedSeq, ok := result.(uint64)
+	resevedSeq, ok := result.(int64)
 	if !ok {
 		return 0, fmt.Errorf("unexpected result type: %T, value: %v", result, result)
 	}
 
-	return resevedSeq, nil
+	if resevedSeq == -1 {
+		return 0, types.ErrorUserAlreadyReservedCouponActive
+	}
+
+	return uint64(resevedSeq), nil
 }
 
 func (r *CouponActiveRepository) AddCoupon(ctx context.Context, coupon model.Coupon) error {

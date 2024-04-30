@@ -1,5 +1,6 @@
 {
     "DATABASE_URL": "postgres://userabc:qwer1234@localhost:5432/coupon",
     "REDIS_URL":"redis://localhost:6379",
-    "PORT":"8088"
+    "PORT":"8088",
+    "MQ_URL":"amqp://admin:qwer1234@localhost:5672/"
 }

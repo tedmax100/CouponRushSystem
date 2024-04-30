@@ -1,7 +1,7 @@
 -- User table
 CREATE TABLE public.user (
-    user_id BIGINT  NOT NULL PRIMARY KEY,
-    user_name VARCHAR(30) NOT NULL
+    id BIGINT  NOT NULL PRIMARY KEY,
+    name VARCHAR(30) NOT NULL
 );
 
 -- Coupon activaty
