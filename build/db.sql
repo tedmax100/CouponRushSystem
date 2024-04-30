@@ -22,7 +22,7 @@ CREATE TABLE user_reserved_coupon_active_history (
     serial_num BIGINT NOT NULL,
     reserved_at BIGINT,
     PRIMARY KEY (user_id, active_id),
-    FOREIGN KEY (user_id) REFERENCES public.user (user_id),
+    FOREIGN KEY (user_id) REFERENCES public.user (id),
     FOREIGN KEY (active_id) REFERENCES public.coupon_active (id)
 );
 
@@ -38,5 +38,18 @@ CREATE TABLE coupon (
     buy_time BIGINT,
     created_at BIGINT NOT NULL,
     FOREIGN KEY (active_id) REFERENCES public.coupon_active (id),
-    FOREIGN KEY (buyer) REFERENCES public.user (user_id)
+    FOREIGN KEY (buyer) REFERENCES public.user (id)
 );
+
+INSERT INTO public."user" (id, name) VALUES (1, 'user1');
+INSERT INTO public."user" (id, name) VALUES (2, 'user2');
+INSERT INTO public."user" (id, name) VALUES (3, 'user3');
+INSERT INTO public."user" (id, name) VALUES (4, 'user4');
+INSERT INTO public."user" (id, name) VALUES (5, 'user5');
+INSERT INTO public."user" (id, name) VALUES (6, 'user6');
+INSERT INTO public."user" (id, name) VALUES (7, 'user7');
+INSERT INTO public."user" (id, name) VALUES (8, 'user8');
+INSERT INTO public."user" (id, name) VALUES (9, 'user9');
+INSERT INTO public."user" (id, name) VALUES (10, 'user10');
+
+INSERT INTO public.coupon_active (id, date, begin_time, end_time, state) VALUES (1, '2024-05-01', '2024-05-01 00:05:55.000000', '2024-05-01 01:06:00.000000', 'OPENING');

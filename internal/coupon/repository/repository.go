@@ -114,6 +114,7 @@ func (r *CouponActiveRepository) CheckReserveCoupon(ctx context.Context, couponA
 
 func (r *CouponActiveRepository) PurchaseCoupon(ctx context.Context, couponActive model.CouponActive, userId uint64) (model.Coupon, error) {
 	couponPurchaseKey := couponActive.ActiveDate.Format("coupan_purchased_20060102")
+	couponPurchasehistoy := couponActive.ActiveDate.Format("coupan_purchased_history_20060102")
 	couponKey := "coupons_" + time.Now().Format("20060102")
 
 	script := `
@@ -124,16 +125,23 @@ func (r *CouponActiveRepository) PurchaseCoupon(ctx context.Context, couponActiv
 		-- Try to pop a coupon from the coupon list
 		local coupon = redis.call('LPOP', KEYS[2])
 		if coupon then
-			-- Mark the user as having purchased a coupon
 			redis.call('SETBIT', KEYS[1], ARGV[1], 1)
+
+			local data = {
+				coupon = coupon,
+				user_id = ARGV[1]
+			}
+			local json = cjson.encode(data)
 		
+			redis.call('LPUSH', KEYS[3], json)
+
 			return coupon
 		else
 			return 'NO_COUPONS'
 		end
 	`
 
-	result, err := r.redisClient.Eval(ctx, script, []string{couponPurchaseKey, couponKey}, userId).Result()
+	result, err := r.redisClient.Eval(ctx, script, []string{couponPurchaseKey, couponKey, couponPurchasehistoy}, userId).Result()
 	if err != nil {
 		return model.Coupon{}, err
 	}

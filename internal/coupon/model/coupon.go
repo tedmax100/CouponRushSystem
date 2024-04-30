@@ -24,3 +24,11 @@ type PurchaseCouponEvent struct {
 	UserID uint64 `json:"userId"`
 	Coupon
 }
+
+func (p PurchaseCouponEvent) Marshal() ([]byte, error) {
+	return json.Marshal(p)
+}
+
+func (p *PurchaseCouponEvent) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, p)
+}

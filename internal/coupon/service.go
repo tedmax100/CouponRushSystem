@@ -80,7 +80,7 @@ func (s *CouponActiveService) PurchaseCoupon(ctx context.Context, couponActive m
 }
 
 func (s *CouponActiveService) ProcessAndGenerateCoupon(ctx context.Context, resevedSeq uint64, couponActive model.CouponActive) error {
-	if resevedSeq%10 == 5 {
+	if resevedSeq%5 == 0 {
 		couponCode, err := uuid.NewRandom()
 		if err != nil {
 			return err

@@ -13,6 +13,7 @@
 
 import http from "k6/http";
 import { group, check, sleep } from "k6";
+import { SharedArray } from "k6/data";
 
 export let options = {
   thresholds: {
@@ -28,7 +29,7 @@ export let options = {
   },
 };
 
-var BASE_URL = __ENV.BASE_URL || "http://localhost:8088";
+var BASE_URL = __ENV.BASE_URL || "http://localhost:8088/api/v1";
 // Sleep duration between successive requests.
 // You might want to edit the value of this variable or remove calls to the sleep function on the script.
 const SLEEP_DURATION = 0.1;
@@ -43,45 +44,45 @@ const users = new SharedArray("user data", function () {
 });
 
 export default function () {
-  group("/coupons/purchase", () => {
-    // Request No. 1:
-    {
-      let url = BASE_URL + `/coupons/purchase`;
-      // TODO: edit the parameters of the request body.
-      let body = { activeId: ACTIVE_ID, userId: randomChoice(users) };
-      let params = {
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      };
-      let request = http.post(url, JSON.stringify(body), params);
-
-      check(request, {
-        OK: (r) => r.status === 200,
-      });
-    }
-  });
-
   group("/coupons/reserve", () => {
     // Request No. 1:
     {
       let url = BASE_URL + `/coupons/reserve`;
       // TODO: edit the parameters of the request body.
-      let body = { activeId: ACTIVE_ID, userId: randomChoice(users) };
+      let body = { active_id: ACTIVE_ID, user_id: randomChoice(users) };
       let params = {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
       };
-      let request = http.post(url, JSON.stringify(body), params);
-
-      check(request, {
-        OK: (r) => r.status === 200,
+      let response = http.post(url, JSON.stringify(body), params);
+      check(response, {
+        OK: (r) => r.status === 200 || r.status === 403,
       });
     }
   });
+
+  group("/coupons/purchase", () => {
+    // Request No. 1:
+    {
+      let url = BASE_URL + `/coupons/purchase`;
+      // TODO: edit the parameters of the request body.
+      let body = { active_id: ACTIVE_ID, user_id: randomChoice(users) };
+      let params = {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      };
+      let response = http.post(url, JSON.stringify(body), params);
+      
+      check(response, {
+        OK: (r) => r.status === 200 || r.status === 403,
+    });
+    }
+  });
+
 }
 
 function randomChoice(arr) {

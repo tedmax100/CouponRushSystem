@@ -3,7 +3,7 @@ GIT_COMMIT=${shell git rev-parse --short HEAD}
 GO_VERSION=1.22
 GIT_BRANCH=${shell git rev-parse --abbrev-ref HEAD}
 BUILD_DATE=$(shell git log -n1 --pretty='format:%cd' --date=format:'%Y%m%d')
-VU ?= 1000
+VU ?= 100
 DURATION ?= 1m
 
 .PHONY: run-server
@@ -29,7 +29,7 @@ docker-build:
 
 .PHONY: k6-run
 k6-run:
-	k6 run --vu $(VU) --duration $(DURATION) api/docs/swagger-k6/script.js
+	k6 run -vu $(VU) --duration $(DURATION) api/docs/swagger-k6/script.js
 
 .PHONY: go-test
 go-test:

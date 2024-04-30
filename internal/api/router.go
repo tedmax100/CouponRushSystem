@@ -13,6 +13,6 @@ func SetupRouter(engine *gin.Engine, p HandlerParams) {
 
 	docs.SwaggerInfo.BasePath = "/api"
 	v1 := engine.Group("/api/v1")
-	v1.POST("/coupons/reservations", h.ReserveCoupon)
-	v1.POST("/coupons/purchases", h.PurchaseCoupon)
+	v1.POST("/coupons/reserve", h.ReserveCoupon)
+	v1.POST("/coupons/purchase", h.PurchaseCoupon)
 }

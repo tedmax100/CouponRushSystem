@@ -75,12 +75,17 @@ func main() {
 		couponRepo.Module,
 		user.Module,
 		userRepo.Module,
-		fx.Invoke(func(cancelFunc context.CancelFunc, lc fx.Lifecycle) {
+		fx.Invoke(func(cancelFunc context.CancelFunc, lc fx.Lifecycle, reservedChan chan model.UserReservedEvent, purchasedChan chan model.PurchaseCouponEvent) {
 			lc.Append(
 				fx.Hook{
 					OnStop: func(ctx context.Context) error {
 						log.Info(ctx, "Process Exit")
 						cancelFunc()
+
+						// Close the channels
+						close(reservedChan)
+						close(purchasedChan)
+
 						return nil
 					},
 				},

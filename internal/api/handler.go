@@ -106,6 +106,14 @@ func (h *Handler) ReserveCoupon(c *gin.Context) {
 	}
 
 	if err := h.couponService.ReserveCoupon(c, couponActive, reserveReq.UserID); err != nil {
+		if err == types.ErrorUserAlreadyReservedCouponActive {
+			c.JSON(http.StatusForbidden, dto.CommonErrorResponse{
+				Code:    http.StatusForbidden,
+				Path:    c.Request.URL.Path,
+				Message: types.ErrorUserAlreadyReservedCouponActive.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, dto.CommonErrorResponse{
 			Code:    http.StatusInternalServerError,
 			Path:    c.Request.URL.Path,
@@ -206,7 +214,15 @@ func (h *Handler) PurchaseCoupon(c *gin.Context) {
 			c.JSON(http.StatusForbidden, dto.CommonErrorResponse{
 				Code:    types.ErrorUserAlreadyPurchasedCoupon.Code,
 				Path:    c.Request.URL.Path,
-				Message: types.ErrorNoCouponToPurchase.Error(),
+				Message: types.ErrorUserAlreadyPurchasedCoupon.Error(),
+			})
+			return
+		}
+		if errors.Is(err, types.ErrorUserNotReserveCouponActive) {
+			c.JSON(http.StatusForbidden, dto.CommonErrorResponse{
+				Code:    types.ErrorUserNotReserveCouponActive.Code,
+				Path:    c.Request.URL.Path,
+				Message: types.ErrorUserNotReserveCouponActive.Error(),
 			})
 			return
 		}
