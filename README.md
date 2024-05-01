@@ -137,33 +137,33 @@ erDiagram
     COUPON_ACTIVE ||--o{ COUPON : "references"
 
     USER {
-        BIGINT id PK "primary key"
-        VARCHAR name "not null"
+        id BIGINT
+        name VARCHAR(30)
     }
 
     COUPON_ACTIVE {
-        BIGINT id PK "primary key"
-        DATE date "not null"
-        TIMESTAMP begin_time "not null"
-        TIMESTAMP end_time "not null"
-        coupon_active_state state "not null"
+        id BIGINT
+        date DATE
+        begin_time TIMESTAMP
+        end_time TIMESTAMP
+        state coupon_active_state
     }
 
     USER_RESERVED_COUPON_ACTIVE_HISTORY {
-        BIGINT user_id PK FK "primary key, foreign key"
-        BIGINT active_id PK FK "primary key, foreign key"
-        BIGINT serial_num "not null"
-        BIGINT reserved_at
+        user_id BIGINT
+        active_id BIGINT
+        serial_num BIGINT
+        reserved_at BIGINT
     }
 
     COUPON {
-        BIGINT id PK "primary key"
-        BIGINT active_id FK "foreign key"
-        VARCHAR coupon_code "not null"
-        coupon_state state "not null"
-        BIGINT buyer FK "foreign key"
-        BIGINT buy_time
-        BIGINT created_at "not null"
+        id BIGINT
+        active_id BIGINT
+        coupon_code VARCHAR(50)
+        state coupon_state
+        buyer BIGINT
+        buy_time BIGINT
+        created_at BIGINT
     }
 ```
 
