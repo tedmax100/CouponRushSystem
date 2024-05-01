@@ -7,19 +7,21 @@ import (
 )
 
 type CouponActive struct {
-	ID              uint64            `json:"id" db:"id"`
-	ActiveDate      time.Time         `json:"date" db:"date"`
-	ActiveBeginTime time.Time         `json:"beginTime" db:"begin_time"`
-	ActiveEndTime   time.Time         `json:"endTime" db:"end_time"`
-	State           CouponActiveState `json:"state" db:"state"`
+	ID                uint64            `json:"id" db:"id"`
+	ActiveDate        time.Time         `json:"date" db:"date"`
+	ActiveBeginTime   time.Time         `json:"beginTime" db:"begin_time"`
+	ActiveEndTime     time.Time         `json:"endTime" db:"end_time"`
+	PurchaseBeginTime time.Time         `json:"purchaseBeginTime" db:"purchase_begin_time"`
+	PurchaseEndTime   time.Time         `json:"purchaseEndTime" db:"purchase_end_time"`
+	State             CouponActiveState `json:"state" db:"state"`
 }
 
 func (s CouponActive) IsValidToReserve(now time.Time) bool {
-	return s.State == OPENING || s.ActiveBeginTime.Before(now) && s.ActiveEndTime.After(now)
+	return s.State == OPENING && s.ActiveBeginTime.Before(now) && s.ActiveEndTime.After(now)
 }
 
 func (s CouponActive) IsValidToPurchase(now time.Time) bool {
-	return s.State == OPENING || now.After(s.ActiveEndTime)
+	return s.State == OPENING && now.After(s.PurchaseBeginTime) && now.Before(s.PurchaseEndTime)
 }
 
 type CouponActiveState int

@@ -67,11 +67,41 @@ tx.Commit()
 
 1. 於Redis中，採用Lua, 將多個操作以atomic的事務形式來確保都完成不會中間被其他操作插隊。
 
+## API 
 
+### Reserve
+Endpoint : http://localhost:8088/api/v1/coupons/reserve
+Method : POST
+Body : JSON {
+    "user_id": number,
+    "active_id": number
+}
 
-## HTTP Status
+Response Code : [200, 400, 401, 403, 404, 500]
 
-403 Forbidden
+Business Staus Code : 
+- 1001, UserNotFound
+- 1002, CouponActiveNotFound
+- 1007, UserAlreadyReservedCouponActive
+- 1009, CouponActiveNotValidToReserve
+
+### Purchase
+Endpoint : http://localhost:8088/api/v1/coupons/purchase
+Method : POST
+Body : JSON {
+    "user_id": number,
+    "active_id": number
+}
+
+Response Code : [200, 400, 401, 403, 404, 500]
+
+Business Staus Code : 
+- 1001, UserNotFound
+- 1002, CouponActiveNotFound
+- 1004, UserNotReserveCouponActive 
+- 1005, UserAlreadyPurchasedCoupon 
+- 1006, NoCouponToPurchase 
+- 1008, CouponActiveNotValidToPurchase
 
 
 ## Busniess Error Codes
@@ -170,3 +200,35 @@ erDiagram
 # System Componets
 
 ![](/img/system_components.png)
+
+RabbitMq Management : http://localhost:15672/
+
+## 使用步驟
+1. make docker-run-server
+2. make add_new_coupon_active
+3. Load testings
+   1. make k6-run-reserve
+   2. makek6-run-purchase
+   3. make k6-run-breaking-test-reserve 
+
+
+# Lead testing
+
+VU 300 , 2min , 預購
+![](/img//avg-load-test-reserve.png)
+
+VU 300, 1min , 搶購
+![](/img/avg-load-test-purchase.png)
+
+
+1m VU 500 
+3m VU 2000
+1m VU 0
+預購
+
+![](/img/breaking-test-reserve-2000VU.png)
+
+只看http_req_duration,VU 300情況下, 
+med 幾乎都在10ms上下, p95 都低於50ms, 這說明絕大部分使用者都能在即短的時間內取得回應。使得server能服務更多使用者。
+
+在嘗試找出單個instance 能服務多少使用者時。 4分鐘內來到 VU 2000。服務的品質依然很穩定。只要能測試出單台的瓶頸，3萬人同時在線同時請求時，就能預先準備好對應數量的server數量來面對。

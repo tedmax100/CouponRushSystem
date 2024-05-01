@@ -3,7 +3,7 @@ GIT_COMMIT=${shell git rev-parse --short HEAD}
 GO_VERSION=1.22
 GIT_BRANCH=${shell git rev-parse --abbrev-ref HEAD}
 BUILD_DATE=$(shell git log -n1 --pretty='format:%cd' --date=format:'%Y%m%d')
-VU ?= 100
+VU ?= 300
 DURATION ?= 1m
 
 .PHONY: run-server
@@ -27,13 +27,30 @@ docker-build:
 	--build-arg "GIT_BRANCH=$(GIT_BRANCH)" \
 	-t coupon_rush_server -f cmd/server/Dockerfile --no-cache . ;
 
-.PHONY: k6-run
-k6-run:
-	k6 run -vu $(VU) --duration $(DURATION) api/docs/swagger-k6/script.js
+.PHONY: add_new_coupon_active
+add_new_coupon_active:
+	docker cp build/add_new_coupon_active.sql db:/tmp/add_new_coupon_active.sql
+	docker exec -it db psql -U userabc -d coupon -f /tmp/add_new_coupon_active.sql
+
+.PHONY: docker-run-server
+docker-run-server:
+	docker compose up --build --force-recreate --remove-orphans --detach
+
+
+.PHONY: k6-run-reserve
+k6-run-reserve:
+	k6 run -vu $(VU) --duration $(DURATION) api/docs/swagger-k6/reserve.js
+
+.PHONY: k6-run-breaking-test-reserve
+k6-run-breaking-test-reserve:
+	k6 run api/docs/swagger-k6/breaking-test-reserve.js
+
+
+.PHONY: k6-run-purchase
+k6-run-purchase:
+	k6 run -vu $(VU) --duration 1m api/docs/swagger-k6/purchase.js
 
 .PHONY: go-test
-go-test:
-	.PHONY: go-test
 go-test:
 	go test ./... -coverprofile=coverage.out
 	( \
@@ -41,3 +58,4 @@ go-test:
 		go tool cover -html=coverage.out & \
 		wait \
 	)
+

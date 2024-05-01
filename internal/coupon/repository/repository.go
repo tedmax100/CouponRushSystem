@@ -33,7 +33,7 @@ func (r *CouponActiveRepository) GetActive(ctx context.Context, activeId uint64)
 	}
 
 	couponActive := model.CouponActive{}
-	if err := r.DB.GetContext(ctx, &couponActive, "SELECT id, date,begin_time, end_time, state FROM coupon_active WHERE id = $1 LIMIT 1", activeId); err != nil {
+	if err := r.DB.GetContext(ctx, &couponActive, "SELECT id, date,begin_time, end_time, purchase_begin_time, purchase_end_time, state FROM coupon_active WHERE id = $1 LIMIT 1", activeId); err != nil {
 		if err == sql.ErrNoRows {
 			return couponActive, types.ErrorCouponActiveNotFound
 		}

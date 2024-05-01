@@ -64,7 +64,7 @@ func (h *Handler) ReserveCoupon(c *gin.Context) {
 	if _, err := h.userService.GetUser(reserveReq.UserID); err != nil {
 		if errors.Is(err, types.ErrorUserNotFound) {
 			c.JSON(http.StatusUnauthorized, dto.CommonErrorResponse{
-				Code:    http.StatusUnauthorized,
+				Code:    types.ErrorUserNotFound.Code,
 				Path:    c.Request.URL.Path,
 				Message: types.ErrorUserNotFound.Error(),
 			})
@@ -82,9 +82,9 @@ func (h *Handler) ReserveCoupon(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, types.ErrorCouponActiveNotFound) {
 			c.JSON(http.StatusUnauthorized, dto.CommonErrorResponse{
-				Code:    http.StatusUnauthorized,
+				Code:    types.ErrorCouponActiveNotFound.Code,
 				Path:    c.Request.URL.Path,
-				Message: types.ErrorUserNotFound.Error(),
+				Message: types.ErrorCouponActiveNotFound.Error(),
 			})
 			return
 		}
@@ -98,9 +98,9 @@ func (h *Handler) ReserveCoupon(c *gin.Context) {
 
 	if !couponActive.IsValidToReserve(now) {
 		c.JSON(http.StatusForbidden, dto.CommonErrorResponse{
-			Code:    http.StatusForbidden,
+			Code:    types.ErrorCouponActiveNotValidToReserve.Code,
 			Path:    c.Request.URL.Path,
-			Message: "coupon active is not valid to reserve",
+			Message: types.ErrorCouponActiveNotValidToReserve.Error(),
 		})
 		return
 	}
@@ -108,7 +108,7 @@ func (h *Handler) ReserveCoupon(c *gin.Context) {
 	if err := h.couponService.ReserveCoupon(c, couponActive, reserveReq.UserID); err != nil {
 		if err == types.ErrorUserAlreadyReservedCouponActive {
 			c.JSON(http.StatusForbidden, dto.CommonErrorResponse{
-				Code:    http.StatusForbidden,
+				Code:    types.ErrorUserAlreadyReservedCouponActive.Code,
 				Path:    c.Request.URL.Path,
 				Message: types.ErrorUserAlreadyReservedCouponActive.Error(),
 			})
@@ -158,7 +158,7 @@ func (h *Handler) PurchaseCoupon(c *gin.Context) {
 	if _, err := h.userService.GetUser(reserveReq.UserID); err != nil {
 		if errors.Is(err, types.ErrorUserNotFound) {
 			c.JSON(http.StatusUnauthorized, dto.CommonErrorResponse{
-				Code:    http.StatusUnauthorized,
+				Code:    types.ErrorUserNotFound.Code,
 				Path:    c.Request.URL.Path,
 				Message: types.ErrorUserNotFound.Error(),
 			})
@@ -176,9 +176,9 @@ func (h *Handler) PurchaseCoupon(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, types.ErrorCouponActiveNotFound) {
 			c.JSON(http.StatusUnauthorized, dto.CommonErrorResponse{
-				Code:    http.StatusUnauthorized,
+				Code:    types.ErrorCouponActiveNotFound.Code,
 				Path:    c.Request.URL.Path,
-				Message: types.ErrorUserNotFound.Error(),
+				Message: types.ErrorCouponActiveNotFound.Error(),
 			})
 			return
 		}
@@ -192,9 +192,9 @@ func (h *Handler) PurchaseCoupon(c *gin.Context) {
 
 	if !couponActive.IsValidToPurchase(now) {
 		c.JSON(http.StatusForbidden, dto.CommonErrorResponse{
-			Code:    http.StatusForbidden,
+			Code:    types.ErrorCouponActiveNotValidToPurchase.Code,
 			Path:    c.Request.URL.Path,
-			Message: "coupon active is not valid to purchase",
+			Message: types.ErrorCouponActiveNotValidToPurchase.Error(),
 		})
 		return
 	}
@@ -226,10 +226,10 @@ func (h *Handler) PurchaseCoupon(c *gin.Context) {
 			})
 			return
 		}
-		c.JSON(http.StatusForbidden, dto.CommonErrorResponse{
-			Code:    http.StatusForbidden,
+		c.JSON(http.StatusInternalServerError, dto.CommonErrorResponse{
+			Code:    http.StatusInternalServerError,
 			Path:    c.Request.URL.Path,
-			Message: "coupon active is not valid to purchase",
+			Message: err.Error(),
 		})
 		return
 	}
