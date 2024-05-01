@@ -9,6 +9,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 	"github.com/tedmax100/CouponRushSystem/internal/api"
 	"github.com/tedmax100/CouponRushSystem/internal/config"
 	"github.com/tedmax100/CouponRushSystem/internal/coupon"
@@ -71,6 +73,12 @@ func main() {
 		config.Module,
 		database.Module,
 		message_queue.Module,
+		fx.Provide(func(db *sqlx.DB, redisClient *redis.Client) coupon.CouponActiveRepositoryInterface {
+			return couponRepo.NewActiveRepository(db, redisClient)
+		}),
+		fx.Provide(func(db *sqlx.DB, redisClient *redis.Client) user.UserRepository {
+			return userRepo.NewUserRepository(db, redisClient)
+		}),
 		coupon.Module,
 		couponRepo.Module,
 		user.Module,

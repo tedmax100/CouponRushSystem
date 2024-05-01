@@ -6,18 +6,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tedmax100/CouponRushSystem/internal/coupon/model"
-	"github.com/tedmax100/CouponRushSystem/internal/coupon/repository"
-	//"github.com/tedmax100/CouponRushSystem/internal/message_queue"
 )
 
 type CouponActiveService struct {
-	repo *repository.CouponActiveRepository
-	//message_queue *message_queue.Broker
+	repo          CouponActiveRepositoryInterface
 	resevedChan   chan<- model.UserReservedEvent
 	purchasedChan chan<- model.PurchaseCouponEvent
 }
 
-func NewCouponActiveService(repo *repository.CouponActiveRepository, resevedChan chan model.UserReservedEvent, purchasedChan chan model.PurchaseCouponEvent) *CouponActiveService {
+func NewCouponActiveService(repo CouponActiveRepositoryInterface, resevedChan chan model.UserReservedEvent, purchasedChan chan model.PurchaseCouponEvent) *CouponActiveService {
 	return &CouponActiveService{
 		repo:          repo,
 		resevedChan:   resevedChan,
@@ -35,7 +32,7 @@ func (s *CouponActiveService) ReserveCoupon(ctx context.Context, couponActive mo
 		return err
 	}
 
-	err = s.ProcessAndGenerateCoupon(ctx, resevedSeq, couponActive)
+	err = s.processAndGenerateCoupon(ctx, resevedSeq, couponActive)
 	if err != nil {
 		return err
 	}
@@ -79,7 +76,7 @@ func (s *CouponActiveService) PurchaseCoupon(ctx context.Context, couponActive m
 	return purchasedCoupon, nil
 }
 
-func (s *CouponActiveService) ProcessAndGenerateCoupon(ctx context.Context, resevedSeq uint64, couponActive model.CouponActive) error {
+func (s *CouponActiveService) processAndGenerateCoupon(ctx context.Context, resevedSeq uint64, couponActive model.CouponActive) error {
 	if resevedSeq%5 == 0 {
 		couponCode, err := uuid.NewRandom()
 		if err != nil {

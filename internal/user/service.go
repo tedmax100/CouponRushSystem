@@ -2,14 +2,13 @@ package user
 
 import (
 	"github.com/tedmax100/CouponRushSystem/internal/user/model"
-	"github.com/tedmax100/CouponRushSystem/internal/user/repository"
 )
 
 type UserSertive struct {
-	repo *repository.UserRepository
+	repo UserRepository
 }
 
-func NewUserSertive(repo *repository.UserRepository) *UserSertive {
+func NewUserSertive(repo UserRepository) *UserSertive {
 	return &UserSertive{
 		repo: repo,
 	}

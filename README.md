@@ -20,15 +20,16 @@
 
 ## 預約發放優惠卷 
 
-每日由後台排程新增 `active_YYYYMMDD` 的 key 進入 redis. 執行 `SET active_20240424 0` .
+每個優惠卷預約活動都有個active_id, 使用者要申請預約要告知預約哪場活動。
 
 開放時間為每日 22:55 - 22:59 , 給用戶進行預約活動的登記; 其他時間一率回應 `403` Forbidden.
 
-設計一個bloom filter, 將user id 放入, 不存在bloom filter的用戶才能預約 (反之, 已預約的不會不存在)
-換個思路 用redis bitmaps, 將user id 對應的bit設置為1. 這樣有沒有預約過就會知道. key採用今天日期.  user id太長超過2^32次方在來煩惱.
+用redis bitmaps, key 是 `coupan_active_YYYYMMDD`, 將user id 對應的bit設置為1. 這樣有沒有預約過就會知道. key採用今天日期.  user id太長超過2^32次方再來煩惱.
 
-再來使用取號機, 每個預約成功請求給個 `預約號碼牌`數量 ; 因為優惠卷數量是預約人數的 20%, 所以每取號5張(或每次取號牌尾數是0) 就即時產生一組優惠卷號碼於 rdb/redis.
-`INCR active_YYYYMMDD`
+再來使用取號機`reserve_active_amount_20060102`, 每個預約成功請求給個 `預約號碼牌`數量 ; 因為優惠卷數量是預約人數的 20%, 所以每取號5張(或每次取號牌尾數是0) 就即時產生一組優惠卷號碼於 redis.
+`coupons__YYYYMMDD`
+
+並發送一筆**已預約成功**的事件給Message Broker。
 
 
 ## 搶購優惠卷
@@ -36,12 +37,15 @@
 已預約成功的用戶, 可以在 23:00 - 23:01 進行搶購優惠卷的行為; i.e. 一分鐘內的秒殺搶購流量大量湧入.
 
 用戶搶購請求進來, 首先要驗證是否是已預約成功的用戶.(思考, 有沒有可能不用去資料庫驗證, 而靠簽章驗證是已預約成功; 有困難, 搞不好用戶登出過或換裝置);
-但bloom filter 只有對不存在絕對正確, 找存在是偽陽性. 
-改用 user id 查找redis bitmaps.
+用 user id 查找redis bitmaps.
 
-已預約成功的用戶, 按照請求順序依序購買到優惠卷; 換句話說比較慢進來搶購的用戶可能就買不到了. (避免超賣問題).
+已預約成功的用戶, 按照請求順序依序購買到優惠卷; 換句話說比較慢進來搶購的用戶可能就買不到了. (避免超賣問題).購買成功則登記於redis bitmaps `coupan_purchased_YYYYMMDD`, 將user id 對應的bit設置為1，可避免同一個用戶多次購買。並且新增一筆購買成功紀錄於 `coupan_purchased_history_YYYYMMDD` 的list中。
 
-當有第一個用戶請求發現已經沒優惠卷了, 此時 應用程式內的 flag 可以改成 `售完`. 以快速回應客戶搶購請求, 也避免給資料庫壓力.
+並發送一筆**已購買成功**的事件給Message Broker。
+再有一些consumer, prefetch能多點, 來同步這些event 到資料庫並更新狀態
+
+
+**TODO** . 當有用戶請求發現已經沒優惠卷了, 此時 應用程式內的 flag 可以改成 `售完`. 以快速回應客戶搶購請求, 也避免給資料庫壓力.
 
 
 購買優惠卷 solutions:
@@ -61,46 +65,9 @@ if id > 0 {
 tx.Commit()
 ```
 
-2. 於Redis中
-
-coupon預熱加載到redis的list中. 
-
-寫lua script, 有預約請求, 就把coupon list給pop, 然後塞進去另一個 coupon_reserved_list中, 並且也對 coupon_YYYYMMDD_reserved 針對user id 的bit設定成1
-
-當結果取得coupon或者取得`ALREADY_RECEIVED`時, 該服務也能keep 一份user coupon cache with TTL 2分鐘.  同一個用戶的重複請求就能在application 直接reject.
+1. 於Redis中，採用Lua, 將多個操作以atomic的事務形式來確保都完成不會中間被其他操作插隊。
 
 
-```lua
--- Lua script for handling coupon distribution in Redis
--- KEYS[1] = list of available coupons (e.g., "coupons_20240424")
--- KEYS[2] = list of reserved coupons (e.g., "coupons_20240424_reserved")
--- KEYS[3] = bitmap for tracking users who have received a coupon (e.g., "coupon_users_20240424")
--- ARGV[1] = user ID
-
--- Check if the user has already got a coupon
-if redis.call('GETBIT', KEYS[3], ARGV[1]) == 1 then
-    return 'ALREADY_RECEIVED' -- User has already received a coupon, return specific message
-end
-
--- Try to pop a coupon from the available list
-local coupon = redis.call('LPOP', KEYS[1])
-if coupon then
-    -- Mark the user as having received a coupon
-    redis.call('SETBIT', KEYS[3], ARGV[1], 1)
-    -- Push the coupon to the reserved list
-    redis.call('RPUSH', KEYS[2], coupon)
-    -- Return the coupon code to the user
-    return coupon
-else
-    -- No coupons left, return specific message
-    return 'NO_COUPONS'
-end
-```
-
-送個event 到mq, 慢慢同步至postgres,
-event record, coupon id + user id + event time + event type 'received_coupon`
-
-再有一些consumer, prefetch能多點, 來同步這些event 到資料庫並更新優惠卷狀態
 
 ## HTTP Status
 
@@ -117,86 +84,89 @@ NOT_RESERVATION
 
 
 ## DB Data Schema
-User : {
-    id : uint64
-    name : string 
-}
+```
+-- User table
+CREATE TABLE public.user (
+    id BIGINT  NOT NULL PRIMARY KEY,
+    name VARCHAR(30) NOT NULL
+);
 
-Active : {
-    id : uint64
-    date: epoch time stamp
-    state : bool // not ready or opening or closed
-}
+-- Coupon activaty
+CREATE TYPE coupon_active_state AS ENUM ('NOT_OPEN', 'OPENING', 'CLOSED');
 
-UserResvedHistory : {
-    user_id : uint64 // user id 
-    active_id : uint64 // active id
-    serial_num : uint64 
-    reserved_at : epoch time stamp
-} 
+CREATE TABLE coupon_active (
+    id BIGINT NOT NULL PRIMARY KEY,
+    date Date NOT NULL,
+    begin_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    state coupon_active_state NOT NULL
+);
 
-Coupon : {
-    id : uint64
-    active_id : uint64
-    coupon_code : string
-    state : enum // created or reserved or used
-    buyer : uint64 // user_id 
-    buy_time : epoch time stamp
-    created_at : epoch time stamp
-}
+-- history about user reserve coupon
+CREATE TABLE user_reserved_coupon_active_history (
+    user_id BIGINT NOT NULL,
+    active_id BIGINT NOT NULL,
+    serial_num BIGINT NOT NULL,
+    reserved_at BIGINT,
+    PRIMARY KEY (user_id, active_id),
+    FOREIGN KEY (user_id) REFERENCES public.user (id),
+    FOREIGN KEY (active_id) REFERENCES public.coupon_active (id)
+);
+
+CREATE TYPE coupon_state AS ENUM ('UNRESERVED', 'RESERVED', 'USED');
+
+-- Coupon table
+CREATE TABLE coupon (
+    id BIGINT PRIMARY KEY,
+    active_id BIGINT,
+    coupon_code VARCHAR(50) NOT NULL,
+    state coupon_state NOT NULL,
+    buyer BIGINT,
+    buy_time BIGINT,
+    created_at BIGINT NOT NULL,
+    FOREIGN KEY (active_id) REFERENCES public.coupon_active (id),
+    FOREIGN KEY (buyer) REFERENCES public.user (id)
+);
+```
 
 ```mermaid
 erDiagram
+    USER ||--o{ USER_RESERVED_COUPON_ACTIVE_HISTORY : "references"
+    USER ||--o{ COUPON : "references"
+    COUPON_ACTIVE ||--o{ USER_RESERVED_COUPON_ACTIVE_HISTORY : "references"
+    COUPON_ACTIVE ||--o{ COUPON : "references"
 
-    USER ||--o{ USER-RESERVED-COUPON-ACTIVE-HISTORY : "has"
     USER {
-        bigint user_id PK "User ID"
-        varchar user_name "User Name"
+        BIGINT id PK "primary key"
+        VARCHAR name "not null"
     }
 
-    COUPON-ACTIVE ||--o{ USER-RESERVED-COUPON-ACTIVE-HISTORY : "contains"
-    COUPON-ACTIVE ||--o{ COUPON : "includes"
-    COUPON-ACTIVE {
-        bigint id PK "Active ID"
-        bigint date "Event Date"
-        coupon_active_state state "Active State"
+    COUPON_ACTIVE {
+        BIGINT id PK "primary key"
+        DATE date "not null"
+        TIMESTAMP begin_time "not null"
+        TIMESTAMP end_time "not null"
+        coupon_active_state state "not null"
     }
 
-    USER-RESERVED-COUPON-ACTIVE-HISTORY {
-        bigint user_id FK "User ID"
-        bigint active_id FK "Active ID"
-        bigint serial_num "Serial Number"
-        bigint reserved_at "Reserved At"
+    USER_RESERVED_COUPON_ACTIVE_HISTORY {
+        BIGINT user_id PK FK "primary key, foreign key"
+        BIGINT active_id PK FK "primary key, foreign key"
+        BIGINT serial_num "not null"
+        BIGINT reserved_at
     }
 
     COUPON {
-        bigint id PK "Coupon ID"
-        bigint active_id FK "Active ID"
-        varchar coupon_code "Coupon Code"
-        coupon_state state "Coupon State"
-        bigint buyer FK "Buyer User ID"
-        bigint buy_time "Buy Time"
-        bigint created_at "Created At"
+        BIGINT id PK "primary key"
+        BIGINT active_id FK "foreign key"
+        VARCHAR coupon_code "not null"
+        coupon_state state "not null"
+        BIGINT buyer FK "foreign key"
+        BIGINT buy_time
+        BIGINT created_at "not null"
     }
-
 ```
 
-# Project Layout
+# System Componets
 
-## /cmd
-
-執行 Server 或 Preload 或 event consumer 的進入點
-
-### Preload
-用於載入user 和 coupon 進入redis作為cache 
-
-### Event Consumer
-用於消費 mq中的 event, 並持久化至db, 或儲存成 materialized view
-
-## /doc
-
-存放 openapi doc 
-
-## /config
-
-存放啟動該
+![](/img/system_components.png)
